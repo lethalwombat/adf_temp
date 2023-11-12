@@ -1,0 +1,12 @@
+{
+	"name": "ls_azkeyvault",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Linked Service to Key Vault for secret management",
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://exp-etas-dev-kv1.vault.azure.net"
+		}
+	}
+}

@@ -1,0 +1,37 @@
+{
+	"name": "CETAS_Binary_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azdatalake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"cetas_Container": {
+				"type": "string",
+				"defaultValue": "transformed"
+			},
+			"cetas_Folder": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "CETAS"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().cetas_Folder",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().cetas_Container",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

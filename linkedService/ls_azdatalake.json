@@ -1,0 +1,13 @@
+{
+	"name": "ls_azdatalake",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Storage Account Linked Service for ADLS",
+		"annotations": [],
+		"type": "AzureBlobStorage",
+		"typeProperties": {
+			"serviceEndpoint": "https://expetasdev5qmnl6sk7aemc.blob.core.windows.net",
+			"accountKind": "StorageV2"
+		}
+	}
+}

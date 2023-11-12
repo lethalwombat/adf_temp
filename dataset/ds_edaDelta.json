@@ -1,0 +1,32 @@
+{
+	"name": "ds_edaDelta",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azdatalake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"targetName": {
+				"type": "string"
+			},
+			"targetSchema": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@concat('Delta/',dataset().targetSchema,'/',dataset().targetName)",
+					"type": "Expression"
+				},
+				"fileSystem": "transformed"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
