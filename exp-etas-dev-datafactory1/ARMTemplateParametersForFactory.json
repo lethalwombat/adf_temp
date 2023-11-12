@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "exp-etas-dev-datafactory1"
+		},
+		"ls_azsqldb_metadatacontroldb_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-sqlserver1.database.windows.net;Initial Catalog=controldb"
+		},
+		"ls_oracle_connectionString": {
+			"value": "host=@{linkedService().host};port=@{linkedService().port};sid=@{linkedService().SID};user id=@{linkedService().userName}"
+		},
+		"ls_sqlserver_connectionString": {
+			"value": "Integrated Security=False;Data Source=@{linkedService().serverName};Initial Catalog=@{linkedService().databaseName};User ID=@{linkedService().userName}"
+		},
+		"ls_synapsesqlondemand_gen01_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-synapse1-ondemand.sql.azuresynapse.net;Initial Catalog=synapsedb"
+		},
+		"ls_azdatalake_properties_typeProperties_serviceEndpoint": {
+			"value": "https://expetasdev5qmnl6sk7aemc.blob.core.windows.net"
+		},
+		"ls_azkeyvault_properties_typeProperties_baseUrl": {
+			"value": "https://exp-etas-dev-kv1.vault.azure.net"
+		},
+		"ls_filesystem_properties_typeProperties_host": {
+			"value": "@{linkedService().host}"
+		},
+		"ls_filesystem_properties_typeProperties_userId": {
+			"value": "@{linkedService().userName}"
+		}
+	}
+}
