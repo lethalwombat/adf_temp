@@ -199,97 +199,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/CETAS_Binary_DS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azdatalake",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"cetas_Container": {
-						"type": "string",
-						"defaultValue": "transformed"
-					},
-					"cetas_Folder": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "CETAS"
-				},
-				"annotations": [],
-				"type": "Binary",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": {
-							"value": "@dataset().cetas_Folder",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().cetas_Container",
-							"type": "Expression"
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EXTPQ_Parquet_DS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azdatalake",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"extpq_Container": {
-						"type": "string"
-					},
-					"extpq_Folder": {
-						"type": "string"
-					},
-					"extpq_FileName": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "EXTPQ"
-				},
-				"annotations": [],
-				"type": "Parquet",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().extpq_FileName",
-							"type": "Expression"
-						},
-						"folderPath": {
-							"value": "@dataset().extpq_Folder",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().extpq_Container",
-							"type": "Expression"
-						}
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_FileSystem_DestinationDS')]",
+			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_FileSystem_ParquetDestinationDS')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -301,9 +211,6 @@
 					"cw_compressionCodec": {
 						"type": "String"
 					},
-					"cw_compressionLevel": {
-						"type": "String"
-					},
 					"cw_columnDelimiter": {
 						"type": "String"
 					},
@@ -312,210 +219,6 @@
 					},
 					"cw_quoteChar": {
 						"type": "String"
-					},
-					"cw_firstRowAsHeader": {
-						"type": "Bool"
-					},
-					"cw_fileName": {
-						"type": "String"
-					},
-					"cw_folderPath": {
-						"type": "String"
-					},
-					"cw_container": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "MetadataDrivenCopy_FileSystem"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().cw_fileName",
-							"type": "Expression"
-						},
-						"folderPath": {
-							"value": "@concat(dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time'), 'yyyy/MM/dd'))",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().cw_container",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": {
-						"value": "@dataset().cw_columnDelimiter",
-						"type": "Expression"
-					},
-					"compressionCodec": {
-						"value": "@dataset().cw_compressionCodec",
-						"type": "Expression"
-					},
-					"compressionLevel": {
-						"value": "@dataset().cw_compressionLevel",
-						"type": "Expression"
-					},
-					"escapeChar": {
-						"value": "@dataset().cw_escapeChar",
-						"type": "Expression"
-					},
-					"firstRowAsHeader": {
-						"value": "@dataset().cw_firstRowAsHeader",
-						"type": "Expression"
-					},
-					"quoteChar": {
-						"value": "@dataset().cw_quoteChar",
-						"type": "Expression"
-					}
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_Oracle_ControlDS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azsqldb_metadatacontroldb",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "MetadataDrivenCopy_Oracle"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "config",
-					"table": "OracleControlTable"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azsqldb_metadatacontroldb')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_Oracle_DestinationDS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azdatalake",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"cw_compressionCodec": {
-						"type": "String"
-					},
-					"cw_compressionLevel": {
-						"type": "String"
-					},
-					"cw_columnDelimiter": {
-						"type": "String"
-					},
-					"cw_escapeChar": {
-						"type": "String"
-					},
-					"cw_quoteChar": {
-						"type": "String"
-					},
-					"cw_firstRowAsHeader": {
-						"type": "Bool"
-					},
-					"cw_fileName": {
-						"type": "String"
-					},
-					"cw_folderPath": {
-						"type": "String"
-					},
-					"cw_container": {
-						"type": "String"
-					},
-					"cw_pipelineStartTime": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "MetadataDrivenCopy_Oracle"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().cw_fileName",
-							"type": "Expression"
-						},
-						"folderPath": {
-							"value": "@if(empty(dataset().cw_pipelineStartTime),concat(dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyy'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'MM'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'dd'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'HHmm')),concat(dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'yyyy'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'MM'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'dd'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'HHmm')))",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().cw_container",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": {
-						"value": "@dataset().cw_columnDelimiter",
-						"type": "Expression"
-					},
-					"compressionCodec": {
-						"value": "@dataset().cw_compressionCodec",
-						"type": "Expression"
-					},
-					"compressionLevel": {
-						"value": "@dataset().cw_compressionLevel",
-						"type": "Expression"
-					},
-					"escapeChar": {
-						"value": "@dataset().cw_escapeChar",
-						"type": "Expression"
-					},
-					"firstRowAsHeader": {
-						"value": "@dataset().cw_firstRowAsHeader",
-						"type": "Expression"
-					},
-					"quoteChar": {
-						"value": "@dataset().cw_quoteChar",
-						"type": "Expression"
-					}
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_Oracle_ParquetSourceDS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azdatalake",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"cw_columnDelimiter": {
-						"type": "String"
-					},
-					"cw_escapeChar": {
-						"type": "String"
-					},
-					"cw_quoteChar": {
-						"type": "String"
-					},
-					"cw_firstRowAsHeader": {
-						"type": "Bool"
 					},
 					"cw_fileName": {
 						"type": "String"
@@ -526,15 +229,15 @@
 					"cw_fileSystem": {
 						"type": "String"
 					},
-					"cw_pipelineStartTime": {
+					"cw_container": {
 						"type": "string"
 					}
 				},
 				"folder": {
-					"name": "MetadataDrivenCopy_Oracle"
+					"name": "MetadataDrivenCopy_FileSystem"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
@@ -543,91 +246,35 @@
 							"type": "Expression"
 						},
 						"folderPath": {
-							"value": "@if(empty(dataset().cw_pipelineStartTime),concat(dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyy'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'MM'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'dd'),'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'HHmm')),concat(dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'yyyy'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'MM'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'dd'),'/',formatDateTime(convertTimeZone(dataset().cw_pipelineStartTime,'UTC','Cen. Australia Standard Time'), 'HHmm')))",
+							"value": "@concat(dataset().cw_fileSystem,'/',dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyy/MM/dd'))",
 							"type": "Expression"
 						},
 						"fileSystem": {
-							"value": "@dataset().cw_fileSystem",
+							"value": "@dataset().cw_container",
 							"type": "Expression"
 						}
 					},
-					"columnDelimiter": {
-						"value": "@dataset().cw_columnDelimiter",
+					"compressionCodec": {
+						"value": "@dataset().cw_compressionCodec",
 						"type": "Expression"
+					},
+					"columnDelimiter": {
+						"type": "Expression",
+						"value": "@dataset().cw_columnDelimiter"
 					},
 					"escapeChar": {
-						"value": "@dataset().cw_escapeChar",
-						"type": "Expression"
-					},
-					"firstRowAsHeader": {
-						"value": "@dataset().cw_firstRowAsHeader",
-						"type": "Expression"
+						"type": "Expression",
+						"value": "@dataset().cw_escapeChar"
 					},
 					"quoteChar": {
-						"value": "@dataset().cw_quoteChar",
-						"type": "Expression"
+						"type": "Expression",
+						"value": "@dataset().cw_quoteChar"
 					}
 				},
 				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_Oracle_Schema')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azsqldb_metadatacontroldb",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"System": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "Schema"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "config",
-					"table": {
-						"value": "@dataset().System",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azsqldb_metadatacontroldb')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_SQL_ControlDS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_azsqldb_metadatacontroldb",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "MetadataDrivenCopy_SQL"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "config",
-					"table": "SQLControlTable"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_azsqldb_metadatacontroldb')]"
 			]
 		},
 		{
