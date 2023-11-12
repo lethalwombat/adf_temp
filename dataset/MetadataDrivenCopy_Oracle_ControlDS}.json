@@ -1,0 +1,20 @@
+{
+	"name": "MetadataDrivenCopy_Oracle_ControlDS}",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azsqldb_metadatacontroldb",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_Oracle"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "config",
+			"table": "OracleControlTable"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
