@@ -1,5 +1,5 @@
 {
-	"name": "MetadataDrivenCopy_Oracle_ControlDS}",
+	"name": "MetadataDrivenCopy_Oracle_ControlDS",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_azsqldb_metadatacontroldb",
