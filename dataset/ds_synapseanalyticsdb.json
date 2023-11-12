@@ -1,0 +1,13 @@
+{
+	"name": "ds_synapseanalyticsdb",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_synapsesqlondemand_gen01",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

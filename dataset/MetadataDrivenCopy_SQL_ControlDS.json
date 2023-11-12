@@ -1,0 +1,20 @@
+{
+	"name": "MetadataDrivenCopy_SQL_ControlDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azsqldb_metadatacontroldb",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "config",
+			"table": "SQLControlTable"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
