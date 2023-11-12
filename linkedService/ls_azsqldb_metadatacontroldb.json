@@ -1,0 +1,12 @@
+{
+	"name": "ls_azsqldb_metadatacontroldb",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Linked Service for Azure Data Factory (ADFv2) configuration items, for metadata driven EL.",
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-sqlserver1.database.windows.net;Initial Catalog=controldb"
+		}
+	}
+}

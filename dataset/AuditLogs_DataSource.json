@@ -1,0 +1,80 @@
+{
+	"name": "AuditLogs_DataSource",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azsqldb_metadatacontroldb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "logId",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "sourceType",
+				"type": "nvarchar"
+			},
+			{
+				"name": "schema",
+				"type": "nvarchar"
+			},
+			{
+				"name": "table",
+				"type": "nvarchar"
+			},
+			{
+				"name": "schedule",
+				"type": "nvarchar"
+			},
+			{
+				"name": "activity",
+				"type": "nvarchar"
+			},
+			{
+				"name": "commenceDateTime",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "completeDateTime",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "status",
+				"type": "nvarchar"
+			},
+			{
+				"name": "errorText",
+				"type": "ntext"
+			},
+			{
+				"name": "rowsCopied",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "elMethod",
+				"type": "nvarchar"
+			},
+			{
+				"name": "watermark",
+				"type": "nvarchar"
+			},
+			{
+				"name": "runDate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "config",
+			"table": "AuditLog"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,88 @@
+{
+	"name": "MetadataDrivenCopy_FileSystem_SourceDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_filesystem",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"cw_worksheetName": {
+				"type": "string"
+			},
+			"cw_folderName": {
+				"type": "string"
+			},
+			"cw_fileName": {
+				"type": "string"
+			},
+			"cw_ls_host": {
+				"type": "string"
+			},
+			"cw_ls_userName": {
+				"type": "string"
+			},
+			"cw_ls_passwordSecretName": {
+				"type": "string"
+			},
+			"cw_range": {
+				"type": "string"
+			},
+			"cw_columnDelimiter": {
+				"type": "String"
+			},
+			"cw_escapeChar": {
+				"type": "String"
+			},
+			"cw_quoteChar": {
+				"type": "String"
+			},
+			"cw_firstRowAsHeaderSource": {
+				"type": "bool"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_FileSystem"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "FileServerLocation",
+				"fileName": {
+					"value": "@dataset().cw_fileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().cw_folderName",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": {
+				"value": "@dataset().cw_columnDelimiter",
+				"type": "Expression"
+			},
+			"escapeChar": {
+				"value": "@dataset().cw_escapeChar",
+				"type": "Expression"
+			},
+			"firstRowAsHeader": {
+				"value": "@dataset().cw_firstRowAsHeaderSource",
+				"type": "Expression"
+			},
+			"quoteChar": {
+				"value": "@dataset().cw_quoteChar",
+				"type": "Expression"
+			},
+			"sheetName": {
+				"value": "@dataset().cw_worksheetName",
+				"type": "Expression"
+			},
+			"range": {
+				"value": "@dataset().cw_range",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

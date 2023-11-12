@@ -1,0 +1,67 @@
+{
+	"name": "MetadataDrivenCopy_Excel_SourceDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_filesystem",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"cw_worksheetName": {
+				"type": "string"
+			},
+			"cw_folderName": {
+				"type": "string"
+			},
+			"cw_fileName": {
+				"type": "string"
+			},
+			"cw_ls_host": {
+				"type": "string"
+			},
+			"cw_ls_userName": {
+				"type": "string"
+			},
+			"cw_ls_passwordSecretName": {
+				"type": "string"
+			},
+			"cw_range": {
+				"type": "string"
+			},
+			"cw_firstRowAsHeaderSource": {
+				"type": "bool"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_FileSystem"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": {
+				"value": "@dataset().cw_worksheetName",
+				"type": "Expression"
+			},
+			"location": {
+				"type": "FileServerLocation",
+				"fileName": {
+					"value": "@dataset().cw_fileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().cw_folderName",
+					"type": "Expression"
+				}
+			},
+			"range": {
+				"value": "@dataset().cw_range",
+				"type": "Expression"
+			},
+			"firstRowAsHeader": {
+				"value": "@dataset().cw_firstRowAsHeaderSource",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
