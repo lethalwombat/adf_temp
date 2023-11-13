@@ -256,7 +256,6 @@
 														}
 													},
 													"enableStaging": false,
-													"validateDataConsistency": true,
 													"translator": {
 														"value": "@json(item().ParquetCopyActivitySettings).translator",
 														"type": "Expression"
@@ -293,46 +292,6 @@
 															},
 															"cw_fileSystem": {
 																"value": "@json(item().ParquetSourceObjectSettings).fileSystem",
-																"type": "Expression"
-															},
-															"cw_pipelineStartTime": {
-																"value": "@pipeline().parameters.PipelineStartTime",
-																"type": "Expression"
-															}
-														}
-													}
-												],
-												"outputs": [
-													{
-														"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
-														"type": "DatasetReference",
-														"parameters": {
-															"cw_compressionCodec": {
-																"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
-																"type": "Expression"
-															},
-															"cw_columnDelimiter": {
-																"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
-																"type": "Expression"
-															},
-															"cw_escapeChar": {
-																"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
-																"type": "Expression"
-															},
-															"cw_quoteChar": {
-																"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
-																"type": "Expression"
-															},
-															"cw_fileName": {
-																"value": "@concat(json(item().ParquetSinkObjectSettings).fileName, '.parquet')",
-																"type": "Expression"
-															},
-															"cw_folderPath": {
-																"value": "@concat(json(item().ParquetSinkObjectSettings).folderPath, '/', json(item().DataLoadingBehaviorSettings).dataLoadingBehavior)",
-																"type": "Expression"
-															},
-															"cw_fileSystem": {
-																"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
 																"type": "Expression"
 															},
 															"cw_pipelineStartTime": {
@@ -1316,7 +1275,6 @@
 														}
 													},
 													"enableStaging": false,
-													"validateDataConsistency": true,
 													"translator": {
 														"value": "@json(item().ParquetCopyActivitySettings).translator",
 														"type": "Expression"
@@ -1357,46 +1315,6 @@
 															},
 															"cw_pipelineStartTime": {
 																"value": "@json(item().ParquetSourceObjectSettings).container",
-																"type": "Expression"
-															}
-														}
-													}
-												],
-												"outputs": [
-													{
-														"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
-														"type": "DatasetReference",
-														"parameters": {
-															"cw_compressionCodec": {
-																"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
-																"type": "Expression"
-															},
-															"cw_columnDelimiter": {
-																"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
-																"type": "Expression"
-															},
-															"cw_escapeChar": {
-																"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
-																"type": "Expression"
-															},
-															"cw_quoteChar": {
-																"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
-																"type": "Expression"
-															},
-															"cw_fileName": {
-																"value": "@json(item().ParquetSinkObjectSettings).fileName",
-																"type": "Expression"
-															},
-															"cw_folderPath": {
-																"value": "@json(item().ParquetSinkObjectSettings).folderPath",
-																"type": "Expression"
-															},
-															"cw_fileSystem": {
-																"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
-																"type": "Expression"
-															},
-															"cw_pipelineStartTime": {
-																"value": "@pipeline().parameters.PipelineStartTime",
 																"type": "Expression"
 															}
 														}
@@ -2503,7 +2421,7 @@
 													}
 												],
 												"storeSettings": {
-													"type": "AzureBlobFSReadSettings",
+													"type": "AzureBlobStorageReadSettings",
 													"recursive": {
 														"value": "@json(item().ParquetCopySourceSettings).recursive",
 														"type": "Expression"
@@ -2518,12 +2436,14 @@
 												}
 											},
 											"sink": {
-												"type": "ParquetSink",
+												"type": "DelimitedTextSink",
 												"storeSettings": {
-													"type": "AzureBlobFSWriteSettings"
+													"type": "AzureBlobStorageWriteSettings"
 												},
 												"formatSettings": {
-													"type": "ParquetWriteSettings"
+													"type": "DelimitedTextWriteSettings",
+													"quoteAllText": true,
+													"fileExtension": ".txt"
 												}
 											},
 											"enableStaging": false,
@@ -2575,42 +2495,8 @@
 										],
 										"outputs": [
 											{
-												"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
-												"type": "DatasetReference",
-												"parameters": {
-													"cw_compressionCodec": {
-														"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
-														"type": "Expression"
-													},
-													"cw_columnDelimiter": {
-														"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
-														"type": "Expression"
-													},
-													"cw_escapeChar": {
-														"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
-														"type": "Expression"
-													},
-													"cw_quoteChar": {
-														"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
-														"type": "Expression"
-													},
-													"cw_fileName": {
-														"value": "@json(item().ParquetSinkObjectSettings).fileName",
-														"type": "Expression"
-													},
-													"cw_folderPath": {
-														"value": "@json(item().ParquetSinkObjectSettings).folderPath",
-														"type": "Expression"
-													},
-													"cw_fileSystem": {
-														"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
-														"type": "Expression"
-													},
-													"cw_pipelineStartTime": {
-														"value": "@pipeline().parameters.PipelineStartTime",
-														"type": "Expression"
-													}
-												}
+												"referenceName": "MetadataDrivenCopy_Oracle_DestinationDS",
+												"type": "DatasetReference"
 											}
 										]
 									},
