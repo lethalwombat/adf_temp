@@ -1,0 +1,51 @@
+{
+	"name": "ds_azsqldb_satacsqldbcontroldb",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azsqldb_metadatacontroldb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "transformation",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sourceSchema",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sourceObject",
+				"type": "nvarchar"
+			},
+			{
+				"name": "targetSchema",
+				"type": "nvarchar"
+			},
+			{
+				"name": "targetObject",
+				"type": "nvarchar"
+			},
+			{
+				"name": "triggerName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "copyEnabled",
+				"type": "bit"
+			}
+		],
+		"typeProperties": {
+			"schema": "config",
+			"table": "MaterialisedTransform"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
