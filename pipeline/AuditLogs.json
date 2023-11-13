@@ -1,0 +1,217 @@
+{
+	"name": "AuditLogs",
+	"properties": {
+		"activities": [
+			{
+				"name": "PartitionLoadAuditLogs",
+				"description": "Copy the changed data only from last time via comparing the value in watermark column to identify changes.",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [logId]\n      ,[sourceType]\n      ,[schema]\n      ,[table]\n      ,[schedule]\n      ,[activity]\n      ,[commenceDateTime]\n      ,[completeDateTime]\n      ,[status]\n      ,[errorText]\n      ,[rowsCopied]\n      ,[elMethod]\n      ,[watermark]\n      ,[runDate]\n  FROM [config].[AuditLog]\n  WHERE [runDate] = cast(getdate() as date);",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"validateDataConsistency": true,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "logId",
+									"type": "Int64"
+								},
+								"sink": {
+									"name": "logId",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"name": "sourceType",
+									"type": "String"
+								},
+								"sink": {
+									"name": "sourceType",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "schema",
+									"type": "String"
+								},
+								"sink": {
+									"name": "schema",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "table",
+									"type": "String"
+								},
+								"sink": {
+									"name": "table",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "schedule",
+									"type": "String"
+								},
+								"sink": {
+									"name": "schedule",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "activity",
+									"type": "String"
+								},
+								"sink": {
+									"name": "activity",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "commenceDateTime",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "commenceDateTime",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"name": "completeDateTime",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "completeDateTime",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"name": "status",
+									"type": "String"
+								},
+								"sink": {
+									"name": "status",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "errorText",
+									"type": "String"
+								},
+								"sink": {
+									"name": "errorText",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "rowsCopied",
+									"type": "Int64"
+								},
+								"sink": {
+									"name": "rowsCopied",
+									"type": "Int64"
+								}
+							},
+							{
+								"source": {
+									"name": "elMethod",
+									"type": "String"
+								},
+								"sink": {
+									"name": "elMethod",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "watermark",
+									"type": "String"
+								},
+								"sink": {
+									"name": "watermark",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "runDate",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "runDate",
+									"type": "DateTime"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "AuditLogs_DataSource",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "MetadataDrivenCopy_SQL_ParquetDestinationDS",
+						"type": "DatasetReference",
+						"parameters": {
+							"cw_compressionCodec": "snappy",
+							"cw_columnDelimiter": "|",
+							"cw_escapeChar": "\\",
+							"cw_quoteChar": "\"",
+							"cw_fileName": "AuditLogs",
+							"cw_folderPath": "metadata\\AuditLogs",
+							"cw_fileSystem": "statenet-raw-optimised",
+							"cw_pipelineStartTime": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Metadata"
+		},
+		"annotations": []
+	}
+}

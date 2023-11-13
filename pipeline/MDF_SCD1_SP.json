@@ -1,0 +1,231 @@
+{
+	"name": "MDF_SCD1_SP",
+	"properties": {
+		"description": "Creates or updates Delta files, based on SCD Type 1 logic.  Accepts parameters for the source, and target object and schema.  Creates a view of the resultant delta directory at first execution.",
+		"activities": [
+			{
+				"name": "Check If Delta Folder Exists",
+				"description": "Checks to see whether a Delta file exists, based on the parsed parameters.",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_edaDelta",
+						"type": "DatasetReference",
+						"parameters": {
+							"targetName": {
+								"value": "@pipeline().parameters.targetName",
+								"type": "Expression"
+							},
+							"targetSchema": {
+								"value": "@pipeline().parameters.targetSchema",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "If Delta Exists Condition",
+				"description": "If condition: Conditionally splits activities, based on whether delta files exist at the target.  If they do not, an initial delta hierarchy and view are created.  If they are, a merge-update is performed based on the incoming data, to the sink.",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Check If Delta Folder Exists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('Check If Delta Folder Exists').output.exists",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Data flow_Insert",
+							"description": "Creates, and executes an insert to the target directory, based on the provided parameters.",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "1.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "MDF_SCD1_Initial_SP",
+									"type": "DataFlowReference",
+									"parameters": {
+										"sourceName": {
+											"value": "'@{pipeline().parameters.sourceName}'",
+											"type": "Expression"
+										},
+										"sourceSchema": {
+											"value": "'@{pipeline().parameters.sourceSchema}'",
+											"type": "Expression"
+										},
+										"targetName": {
+											"value": "'@{pipeline().parameters.targetName}'",
+											"type": "Expression"
+										},
+										"targetSchema": {
+											"value": "'@{pipeline().parameters.targetSchema}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"synSslSrcQry": {
+											"targetName": {
+												"value": "@pipeline().parameters.targetName",
+												"type": "Expression"
+											},
+											"targetSchema": {
+												"value": "@pipeline().parameters.targetSchema",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						},
+						{
+							"name": "CreateDeltaView",
+							"description": "Creates a Delta view of the object directory, based on the provided parameters.",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Data flow_Insert",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ls_synapsesqlondemand_gen01",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('CREATE OR ALTER VIEW [',pipeline().parameters.targetSchema,'].[',pipeline().parameters.targetName,']\nAS\nSELECT *\nFROM\n    OPENROWSET(\n        BULK ''transformed/Delta/',pipeline().parameters.targetSchema,'/',pipeline().parameters.targetName,''',\n        DATA_SOURCE = ''eds_eduschedadls01_mi'',\n        FORMAT = ''DELTA''\n    ) AS [result];')",
+											"type": "Expression"
+										}
+									}
+								]
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Data flow_Update",
+							"description": "Execute a merge (update), based on the provided parameters.",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "1.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "MDF_SCD1_Update_SP",
+									"type": "DataFlowReference",
+									"parameters": {
+										"sourceName": {
+											"value": "'@{pipeline().parameters.sourceName}'",
+											"type": "Expression"
+										},
+										"sourceSchema": {
+											"value": "'@{pipeline().parameters.sourceSchema}'",
+											"type": "Expression"
+										},
+										"targetName": {
+											"value": "'@{pipeline().parameters.targetName}'",
+											"type": "Expression"
+										},
+										"targetSchema": {
+											"value": "'@{pipeline().parameters.targetSchema}'",
+											"type": "Expression"
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine",
+								"sourceStagingConcurrency": 1
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"targetName": {
+				"type": "string",
+				"defaultValue": "empty"
+			},
+			"targetSchema": {
+				"type": "string",
+				"defaultValue": "fnd_rel"
+			},
+			"sourceName": {
+				"type": "string",
+				"defaultValue": "vw_empty_hash"
+			},
+			"sourceSchema": {
+				"type": "string",
+				"defaultValue": "dbo"
+			},
+			"database": {
+				"type": "string",
+				"defaultValue": "satac-dai-hub"
+			}
+		},
+		"folder": {
+			"name": "SCD/Transformations"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,1869 @@
+{
+	"name": "Transformation_BottomLevel",
+	"properties": {
+		"activities": [
+			{
+				"name": "ListObjectsFromOneGroup",
+				"description": "List objects from one group and iterate each of them to downstream activities",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.ObjectsPerGroupToCopy",
+						"type": "Expression"
+					},
+					"batchCount": 50,
+					"activities": [
+						{
+							"name": "RouteJobsBasedOnLoadingBehavior",
+							"description": "Check the loading behavior for each object if it requires full load or incremental load. If it is Default or FullLoad case, do full load. If it is DeltaLoad case, do incremental load.",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@item().DataLoadingBehaviorSettings",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "SCD1_View",
+										"activities": [
+											{
+												"name": "LogTransformCommence_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "MDF_SCD1",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "LogTransformCommence_FL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "MDF_SCD1_VW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"targetName": {
+															"value": "@json(item().SinkObjectSettings).table",
+															"type": "Expression"
+														},
+														"targetSchema": {
+															"value": "@json(item().SinkObjectSettings).schema",
+															"type": "Expression"
+														},
+														"sourceName": {
+															"value": "@json(item().SourceObjectSettings).table",
+															"type": "Expression"
+														},
+														"sourceSchema": {
+															"value": "@json(item().SourceObjectSettings).schema",
+															"type": "Expression"
+														},
+														"database": {
+															"value": "@pipeline().parameters.databaseName",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "LogTransformSuccess_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('MDF_SCD1').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogTransformFailure_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('MDF_SCD1').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogTransformFail_FL",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogTransformFailure_FL",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									},
+									{
+										"value": "SCD1_Procedure",
+										"activities": [
+											{
+												"name": "LogTransformCommence_FL_SP",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "MDF_SCD1_SP",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "LogTransformCommence_FL_SP",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "MDF_SCD1_SP",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"targetName": {
+															"value": "@json(item().SinkObjectSettings).table",
+															"type": "Expression"
+														},
+														"targetSchema": {
+															"value": "@json(item().SinkObjectSettings).schema",
+															"type": "Expression"
+														},
+														"sourceName": {
+															"value": "@json(item().SourceObjectSettings).table",
+															"type": "Expression"
+														},
+														"sourceSchema": {
+															"value": "@json(item().SourceObjectSettings).schema",
+															"type": "Expression"
+														},
+														"database": {
+															"value": "@pipeline().parameters.databaseName",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "LogTransformSuccess_FL_SP",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_SP",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('MDF_SCD1_SP').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogTransformFailure_FL_SP",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_SP",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD1",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD1",
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('MDF_SCD1_SP').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogTransformFail_FL_SP",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogTransformFailure_FL_SP",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									},
+									{
+										"value": "CETAS",
+										"activities": [
+											{
+												"name": "LogTransformCommence_FL_CETAS",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "CETAS",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "MDF_SCD1_CETAS",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "LogTransformCommence_FL_CETAS",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "ADF_CETAS_SP",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"targetName": {
+															"value": "@json(item().SinkObjectSettings).table",
+															"type": "Expression"
+														},
+														"targetSchema": {
+															"value": "@json(item().SinkObjectSettings).schema",
+															"type": "Expression"
+														},
+														"sourceName": {
+															"value": "@json(item().SourceObjectSettings).table",
+															"type": "Expression"
+														},
+														"sourceSchema": {
+															"value": "@json(item().SourceObjectSettings).schema",
+															"type": "Expression"
+														},
+														"container": {
+															"value": "@item().targetContainer",
+															"type": "Expression"
+														},
+														"storageAccount": {
+															"value": "@json(item().SourceObjectSettings).storageAccount",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.PipelineStartTime",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "LogTransformSuccess_FL_CETAS",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_CETAS",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "CETAS",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('MDF_SCD1_CETAS').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogTransformFailure_FL_SP_CETAS",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_CETAS",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "CETAS",
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('MDF_SCD1_CETAS').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogTransformFail_FL_CETAS",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogTransformFailure_FL_SP_CETAS",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									},
+									{
+										"value": "SCD2_View",
+										"activities": [
+											{
+												"name": "LogTransformCommence_FL_2",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD2",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD2",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "MDF_SCD2",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "LogTransformCommence_FL_2",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "MDF_SCD2_VW",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"targetName": {
+															"value": "@json(item().SinkObjectSettings).table",
+															"type": "Expression"
+														},
+														"targetSchema": {
+															"value": "@json(item().SinkObjectSettings).schema",
+															"type": "Expression"
+														},
+														"sourceName": {
+															"value": "@json(item().SourceObjectSettings).table",
+															"type": "Expression"
+														},
+														"sourceSchema": {
+															"value": "@json(item().SourceObjectSettings).schema",
+															"type": "Expression"
+														},
+														"database": {
+															"value": "@pipeline().parameters.databaseName",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "LogTransformSuccess_FL_2",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD2",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD2",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD2",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('MDF_SCD2').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogTransformFailure_FL_2",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD2",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "MDF_SCD2",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "SCD2",
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('MDF_SCD2').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogTransformFail_FL_2",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogTransformFailure_FL_2",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									},
+									{
+										"value": "EXTPQ",
+										"activities": [
+											{
+												"name": "LogTransformCommence_FL_EXTPQ",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "EXTPQ",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "MDF_SCD1_EXTPQ",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "LogTransformCommence_FL_EXTPQ",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "ADF_EXTPQ_TF",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"targetName": {
+															"value": "@json(item().SinkObjectSettings).table",
+															"type": "Expression"
+														},
+														"targetSchema": {
+															"value": "@json(item().SinkObjectSettings).schema",
+															"type": "Expression"
+														},
+														"sourceName": {
+															"value": "@json(item().SourceObjectSettings).table",
+															"type": "Expression"
+														},
+														"sourceSchema": {
+															"value": "@json(item().SourceObjectSettings).schema",
+															"type": "Expression"
+														},
+														"database": {
+															"value": "@pipeline().parameters.databaseName",
+															"type": "Expression"
+														},
+														"container": {
+															"value": "@item().targetContainer",
+															"type": "Expression"
+														},
+														"parameter": {
+															"value": "@item().Parameter",
+															"type": "Expression"
+														},
+														"folderName": {
+															"value": "@item().folderName",
+															"type": "Expression"
+														},
+														"tablePrefix": {
+															"value": "@item().tablePrefix",
+															"type": "Expression"
+														},
+														"storageAccount": {
+															"value": "@json(item().SourceObjectSettings).storageAccount",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.PipelineStartTime",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "LogTransformFailure_FL_SP_EXTPQ",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_EXTPQ",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "EXTPQ",
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('MDF_SCD1_EXTPQ').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": null,
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogTransformFail_FL_EXTPQ",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogTransformFailure_FL_SP_EXTPQ",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											},
+											{
+												"name": "LogTransformSuccess_FL_EXTPQ",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "MDF_SCD1_EXTPQ",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "Snapshot",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": "EXTPQ",
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('MDF_SCD1_EXTPQ').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": "view",
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Wait1",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ObjectsPerGroupToCopy": {
+				"type": "Array"
+			},
+			"TriggerName": {
+				"type": "string"
+			},
+			"databaseName": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SCD"
+		},
+		"annotations": []
+	}
+}

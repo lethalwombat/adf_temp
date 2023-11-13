@@ -1,0 +1,183 @@
+{
+	"name": "Transformation_Top_TopLevel",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetTotalJobStagesPerTriggerName",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select distinct(JobStage) as JobStage from @{pipeline().parameters.MainControlTableName} where JobTrigger like '%@{pipeline().TriggerName}%' order by jobStage",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "MetadataDrivenCopy_SQL_ControlDS",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachStagePerTrigger",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetTotalJobStagesPerTriggerName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetTotalJobStagesPerTriggerName').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "GetStageAttributes",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select PipelineName, ControlTableTrigger, JobStage from @{pipeline().parameters.MainControlTableName} where JobStage = @{item().JobStage} and JobTrigger like '%@{pipeline().TriggerName}%'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_azsqldb_satacsqldbcontroldb",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "SwitchPipeline",
+							"type": "Switch",
+							"dependsOn": [
+								{
+									"activity": "GetStageAttributes",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@activity('GetStageAttributes').output.firstRow.PipelineName",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "MetadataDrivenCopy_SQL_TopLevel",
+										"activities": [
+											{
+												"name": "MetadataDrivenCopy_SQL_TopLevel",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "MetadataDrivenCopy_SQL_TopLevel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"MaxNumberOfObjectsReturnedFromLookupActivity": 5000,
+														"MaxNumberOfConcurrentTasks": 16,
+														"MainControlTableName": "config.SQLControlTable",
+														"ConnectionControlTableName": "config.SQLConnectionControlTable",
+														"trigger": {
+															"value": "@activity('GetStageAttributes').output.firstRow.ControlTableTrigger",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.TriggerStartTime",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Transformation_StageLevel",
+										"activities": [
+											{
+												"name": "Transformation_StageLevel",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "Transformation_StageLevel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"MainControlTableName": "config.vw_MaterialisedTransform",
+														"triggerName": {
+															"value": "@activity('GetStageAttributes').output.firstRow.ControlTableTrigger",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.TriggerStartTime",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"MainControlTableName": {
+				"type": "string",
+				"defaultValue": "config.JobControl"
+			},
+			"TriggerStartTime": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"Stage_String": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}

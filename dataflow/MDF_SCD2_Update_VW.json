@@ -1,0 +1,168 @@
+{
+	"name": "MDF_SCD2_Update_VW",
+	"properties": {
+		"description": "Execute a merge (update) scd2, to the target directory, based on the provided parameters.",
+		"folder": {
+			"name": "SCD/2/Update"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_synapsesqlondemand_gen01",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SynSqlCur"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_synapsesqlondemand_gen01",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SynSslSrcQuery"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_azdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "TagInsert"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "AddHashInput"
+				},
+				{
+					"name": "FilterActive"
+				},
+				{
+					"name": "NewAndUpdate"
+				},
+				{
+					"name": "GetMaxSK"
+				},
+				{
+					"name": "JoinWithMax"
+				},
+				{
+					"name": "UpdateSK"
+				},
+				{
+					"name": "FilterForUpdated"
+				},
+				{
+					"name": "UpdateValues"
+				},
+				{
+					"name": "TagUpdate"
+				},
+				{
+					"name": "UnionInsertUpdate"
+				},
+				{
+					"name": "MapDriftedHash",
+					"description": "Creates an explicit mapping for each drifted column"
+				},
+				{
+					"name": "DropUnwanted"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     sourceName as string ('vw_empty_hash_scd2'),",
+				"     sourceSchema as string ('dbo'),",
+				"     targetName as string ('empty_scd2'),",
+				"     targetSchema as string ('fnd_rel')",
+				"}",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'synapseanalytics',",
+				"     schemaName: ($sourceSchema),",
+				"     tableName: ($sourceName),",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     staged: false) ~> SynSqlCur",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'synapseanalytics',",
+				"     schemaName: ($sourceSchema),",
+				"     tableName: ($sourceName),",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     staged: false) ~> SynSslSrcQuery",
+				"DropUnwanted alterRow(insertIf(true())) ~> TagInsert",
+				"NewAndUpdate keyGenerate(output(SK as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey1",
+				"SynSslSrcQuery derive(rowUUID = uuid(),",
+				"          rowSig = toBinary(byName('rowSig')),",
+				"          rowHash = toBinary(byName('rowHash')),",
+				"          isCurrent = 1,",
+				"          effectiveFromDT = currentTimestamp(),",
+				"          effectiveToDT = toTimestamp(null())) ~> AddHashInput",
+				"MapDriftedHash filter(isCurrent == 1) ~> FilterActive",
+				"AddHashInput, FilterActive exists(AddHashInput@rowSig == toBinary(byName('rowSig','MapDriftedHash'))\r",
+				"     && AddHashInput@rowHash == toBinary(byName('rowHash','MapDriftedHash')),",
+				"     negate:true,",
+				"     broadcast: 'auto')~> NewAndUpdate",
+				"FilterActive aggregate(MaxSK = max(toInteger(byName('SK')))) ~> GetMaxSK",
+				"surrogateKey1, GetMaxSK join(SK==MaxSK || true(),",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinWithMax",
+				"JoinWithMax derive(SK = SK + MaxSK) ~> UpdateSK",
+				"FilterActive, NewAndUpdate exists(MapDriftedHash@rowSig == AddHashInput@rowSig,",
+				"     negate:false,",
+				"     broadcast: 'auto')~> FilterForUpdated",
+				"FilterForUpdated derive(isCurrent = 0,",
+				"          effectiveToDT = currentTimestamp()) ~> UpdateValues",
+				"UpdateValues alterRow(updateIf(true())) ~> TagUpdate",
+				"TagInsert, TagUpdate union(byName: true)~> UnionInsertUpdate",
+				"SynSqlCur derive(rowUUID = toString(byName('rowUUID')),",
+				"          rowSig = toBinary(byName('rowSig')),",
+				"          rowHash = toBinary(byName('rowHash')),",
+				"          isCurrent = toInteger(byName('isCurrent')),",
+				"          effectiveFromDT = toTimestamp(byName('effectiveFromDT')),",
+				"          effectiveToDT = toTimestamp(byName('effectiveToDT')),",
+				"          SK = toLong(byName('SK'))) ~> MapDriftedHash",
+				"UpdateSK select(mapColumn(",
+				"          each(match(!in(['MaxSK'],name)))",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> DropUnwanted",
+				"UnionInsertUpdate sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     compressionType: 'snappy',",
+				"     compressionLevel: 'Fastest',",
+				"     fileSystem: 'transformed',",
+				"     folderPath: (concat('Delta/',$targetSchema,'/',$targetName)),",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['SK'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkDelta"
+			]
+		}
+	}
+}

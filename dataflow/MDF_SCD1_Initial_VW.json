@@ -1,0 +1,87 @@
+{
+	"name": "MDF_SCD1_Initial_VW",
+	"properties": {
+		"description": "Executes an initial load to the target environment, based on the parsed parameters.",
+		"folder": {
+			"name": "SCD/1/Initial"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_synapsesqlondemand_gen01",
+						"type": "LinkedServiceReference"
+					},
+					"name": "synSslSrcQry"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_azdatalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkDelta"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumns"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "alterRows"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     sourceName as string ('vw_empty_hash'),",
+				"     sourceSchema as string ('dbo'),",
+				"     targetName as string ('empty'),",
+				"     targetSchema as string ('fnd_rel')",
+				"}",
+				"source(output(",
+				"          rowSig as binary,",
+				"          rowHash as binary",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'synapseanalytics',",
+				"     schemaName: ($sourceSchema),",
+				"     tableName: ($sourceName),",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     staged: false) ~> synSslSrcQry",
+				"synSslSrcQry derive(rowUUID = uuid(),",
+				"          lastUpdateDate = currentTimestamp()) ~> derivedColumns",
+				"derivedColumns keyGenerate(output(SK as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey alterRow(upsertIf(true())) ~> alterRows",
+				"alterRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     compressionType: 'snappy',",
+				"     compressionLevel: 'Fastest',",
+				"     fileSystem: 'transformed',",
+				"     folderPath: (concat('Delta/',$targetSchema,'/',$targetName)),",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkDelta"
+			]
+		}
+	}
+}

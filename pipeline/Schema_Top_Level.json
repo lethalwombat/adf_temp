@@ -1,0 +1,86 @@
+{
+	"name": "Schema_Top_Level",
+	"properties": {
+		"description": "This pipeline retrieves a list of connections referenced within the control database, and executes a number of batches based through  execution of another pipeline to copy metadata information about each source.",
+		"activities": [
+			{
+				"name": "LookupConnections",
+				"description": "Looks up the connection details listed in the Control database.",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "/****** Script for SelectTopNRows command from SSMS  ******/\nSELECT [System]=LTRIM(RTRIM([System]))\n      ,[ShortName]=LTRIM(RTRIM([ShortName]))\n  FROM [config].[ConnectionReference]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "MetadataDrivenCopy_SQL_ControlDS",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachConnection",
+				"description": "Iterates through each connection listed within the control database.",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LookupConnections",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LookupConnections').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Execute Middle Level",
+							"description": "Executes another pipeline to generate metadata relating to the sources identified within the control database.",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Schema_Middle_Level",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"System": {
+										"value": "@item().System",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "@item().ShortName",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "Metadata/Schema"
+		},
+		"annotations": []
+	}
+}
