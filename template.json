@@ -1,0 +1,529 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "exp-etas-dev-datafactory1"
+		},
+		"ls_azsqldb_metadatacontroldb_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_azsqldb_metadatacontroldb'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-sqlserver1.database.windows.net;Initial Catalog=controldb"
+		},
+		"ls_oracle_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_oracle'",
+			"defaultValue": "host=@{linkedService().host};port=@{linkedService().port};sid=@{linkedService().SID};user id=@{linkedService().userName}"
+		},
+		"ls_sqlserver_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sqlserver'",
+			"defaultValue": "Integrated Security=False;Data Source=@{linkedService().serverName};Initial Catalog=@{linkedService().databaseName};User ID=@{linkedService().userName}"
+		},
+		"ls_synapsesqlondemand_gen01_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_synapsesqlondemand_gen01'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-synapse1-ondemand.sql.azuresynapse.net;Initial Catalog=synapsedb"
+		},
+		"ls_azdatalake_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://expetasdev5qmnl6sk7aemc.blob.core.windows.net"
+		},
+		"ls_azkeyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://exp-etas-dev-kv1.vault.azure.net"
+		},
+		"ls_filesystem_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "@{linkedService().host}"
+		},
+		"ls_filesystem_properties_typeProperties_userId": {
+			"type": "string",
+			"defaultValue": "@{linkedService().userName}"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AuditLogs_DataSource')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azsqldb_metadatacontroldb",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "logId",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "sourceType",
+						"type": "nvarchar"
+					},
+					{
+						"name": "schema",
+						"type": "nvarchar"
+					},
+					{
+						"name": "table",
+						"type": "nvarchar"
+					},
+					{
+						"name": "schedule",
+						"type": "nvarchar"
+					},
+					{
+						"name": "activity",
+						"type": "nvarchar"
+					},
+					{
+						"name": "commenceDateTime",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "completeDateTime",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "status",
+						"type": "nvarchar"
+					},
+					{
+						"name": "errorText",
+						"type": "ntext"
+					},
+					{
+						"name": "rowsCopied",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "elMethod",
+						"type": "nvarchar"
+					},
+					{
+						"name": "watermark",
+						"type": "nvarchar"
+					},
+					{
+						"name": "runDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "config",
+					"table": "AuditLog"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azsqldb_metadatacontroldb')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MetadataDrivenCopy_FileSystem_ParquetDestinationDS')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azdatalake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"cw_compressionCodec": {
+						"type": "String"
+					},
+					"cw_columnDelimiter": {
+						"type": "String"
+					},
+					"cw_escapeChar": {
+						"type": "String"
+					},
+					"cw_quoteChar": {
+						"type": "String"
+					},
+					"cw_fileName": {
+						"type": "String"
+					},
+					"cw_folderPath": {
+						"type": "String"
+					},
+					"cw_fileSystem": {
+						"type": "String"
+					},
+					"cw_container": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "MetadataDrivenCopy_FileSystem"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().cw_fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat(dataset().cw_fileSystem,'/',dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyy/MM/dd'))",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().cw_container",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": {
+						"value": "@dataset().cw_compressionCodec",
+						"type": "Expression"
+					},
+					"columnDelimiter": {
+						"type": "Expression",
+						"value": "@dataset().cw_columnDelimiter"
+					},
+					"escapeChar": {
+						"type": "Expression",
+						"value": "@dataset().cw_escapeChar"
+					},
+					"quoteChar": {
+						"type": "Expression",
+						"value": "@dataset().cw_quoteChar"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_azsqldb_sqldbcontroldb')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azsqldb_metadatacontroldb",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "transformation",
+						"type": "nvarchar"
+					},
+					{
+						"name": "sourceSchema",
+						"type": "nvarchar"
+					},
+					{
+						"name": "sourceObject",
+						"type": "nvarchar"
+					},
+					{
+						"name": "targetSchema",
+						"type": "nvarchar"
+					},
+					{
+						"name": "targetObject",
+						"type": "nvarchar"
+					},
+					{
+						"name": "triggerName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "copyEnabled",
+						"type": "bit"
+					}
+				],
+				"typeProperties": {
+					"schema": "config",
+					"table": "MaterialisedTransform"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azsqldb_metadatacontroldb')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_edaDelta')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azdatalake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"targetName": {
+						"type": "string"
+					},
+					"targetSchema": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@concat('Delta/',dataset().targetSchema,'/',dataset().targetName)",
+							"type": "Expression"
+						},
+						"fileSystem": "transformed"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azdatalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_synapseanalyticsdb')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_synapsesqlondemand_gen01",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_synapsesqlondemand_gen01')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_azdatalake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Storage Account Linked Service for ADLS",
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"serviceEndpoint": "[parameters('ls_azdatalake_properties_typeProperties_serviceEndpoint')]",
+					"accountKind": "StorageV2"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_azkeyvault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Linked Service to Key Vault for secret management",
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('ls_azkeyvault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_azsqldb_metadatacontroldb')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Linked Service for Azure Data Factory (ADFv2) configuration items, for metadata driven EL.",
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_azsqldb_metadatacontroldb_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_filesystem')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Generic Oracle linked service for Filesystem Sources",
+				"parameters": {
+					"host": {
+						"type": "string"
+					},
+					"userName": {
+						"type": "string"
+					},
+					"passwordSecretName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "FileServer",
+				"typeProperties": {
+					"host": "[parameters('ls_filesystem_properties_typeProperties_host')]",
+					"userId": "[parameters('ls_filesystem_properties_typeProperties_userId')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "ls_azkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": {
+							"value": "@linkedService().passwordSecretName",
+							"type": "Expression"
+						}
+					}
+				},
+				"connectVia": {
+					"referenceName": "SelfHostedIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/SelfHostedIntegrationRuntime')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_azkeyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_oracle')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Generic Oracle linked service for Oracle Sources",
+				"parameters": {
+					"host": {
+						"type": "string"
+					},
+					"port": {
+						"type": "string"
+					},
+					"SID": {
+						"type": "string"
+					},
+					"userName": {
+						"type": "string"
+					},
+					"passwordSecretName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Oracle",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_oracle_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "ls_azkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": {
+							"value": "@linkedService().passwordSecretName",
+							"type": "Expression"
+						}
+					}
+				},
+				"connectVia": {
+					"referenceName": "SelfHostedIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/SelfHostedIntegrationRuntime')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_azkeyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sqlserver')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Generic SQL Server linked service for SQL Connections (Sources)",
+				"parameters": {
+					"serverName": {
+						"type": "string"
+					},
+					"databaseName": {
+						"type": "string"
+					},
+					"userName": {
+						"type": "string"
+					},
+					"passwordSecretName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_sqlserver_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "ls_azkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": {
+							"value": "@linkedService().passwordSecretName",
+							"type": "Expression"
+						}
+					}
+				},
+				"connectVia": {
+					"referenceName": "SelfHostedIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/SelfHostedIntegrationRuntime')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_azkeyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_synapsesqlondemand_gen01')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_synapsesqlondemand_gen01_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SelfHostedIntegrationRuntime')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		}
+	]
+}

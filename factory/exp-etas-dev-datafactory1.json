@@ -1,9 +1,0 @@
-{
-	"name": "exp-etas-dev-datafactory1",
-	"location": "australiaeast",
-	"identity": {
-		"type": "SystemAssigned",
-		"principalId": "658d7934-390f-4dee-980d-18c4cf241e09",
-		"tenantId": "828ac48e-05ab-4d94-abaf-3ccae6f84aac"
-	}
-}
