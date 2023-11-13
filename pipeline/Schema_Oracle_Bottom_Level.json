@@ -90,6 +90,7 @@
 						"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
 						"type": "DatasetReference",
 						"parameters": {
+							"cw_schema": "cw_schema",
 							"cw_table": "ALL_TAB_COLUMNS",
 							"cw_ls_host": {
 								"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).host",
