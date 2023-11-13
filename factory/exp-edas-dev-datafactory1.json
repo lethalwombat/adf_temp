@@ -1,0 +1,9 @@
+{
+	"name": "exp-edas-dev-datafactory1",
+	"location": "australiaeast",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "5a637e1b-8c4e-4df3-b46a-1d7f7b3e8b15",
+		"tenantId": "828ac48e-05ab-4d94-abaf-3ccae6f84aac"
+	}
+}

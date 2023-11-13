@@ -1,0 +1,36 @@
+{
+	"name": "SCD_Binary_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azdatalake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"scd_Container": {
+				"type": "string"
+			},
+			"scd_Folder": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SCD"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().scd_Folder",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().scd_Container",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
