@@ -1,0 +1,75 @@
+{
+	"name": "MetadataDrivenCopy_FileSystem_ParquetDestinationDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azdatalake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"cw_compressionCodec": {
+				"type": "String"
+			},
+			"cw_columnDelimiter": {
+				"type": "String"
+			},
+			"cw_escapeChar": {
+				"type": "String"
+			},
+			"cw_quoteChar": {
+				"type": "String"
+			},
+			"cw_fileName": {
+				"type": "String"
+			},
+			"cw_folderPath": {
+				"type": "String"
+			},
+			"cw_fileSystem": {
+				"type": "String"
+			},
+			"cw_container": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_FileSystem"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().cw_fileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat(dataset().cw_fileSystem,'/',dataset().cw_folderPath,'/',formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyy/MM/dd'))",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().cw_container",
+					"type": "Expression"
+				}
+			},
+			"compressionCodec": {
+				"value": "@dataset().cw_compressionCodec",
+				"type": "Expression"
+			},
+			"columnDelimiter": {
+				"type": "Expression",
+				"value": "@dataset().cw_columnDelimiter"
+			},
+			"escapeChar": {
+				"type": "Expression",
+				"value": "@dataset().cw_escapeChar"
+			},
+			"quoteChar": {
+				"type": "Expression",
+				"value": "@dataset().cw_quoteChar"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

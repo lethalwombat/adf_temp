@@ -1,0 +1,64 @@
+{
+	"name": "MetadataDrivenCopy_SQL_SourceDS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqlserver",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"serverName": {
+					"value": "@dataset().cw_ls_serverName",
+					"type": "Expression"
+				},
+				"databaseName": {
+					"value": "@dataset().cw_ls_databaseName",
+					"type": "Expression"
+				},
+				"userName": {
+					"value": "@dataset().cw_ls_userName",
+					"type": "Expression"
+				},
+				"passwordSecretName": {
+					"value": "@dataset().cw_ls_passwordSecretName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"cw_schema": {
+				"type": "String"
+			},
+			"cw_table": {
+				"type": "String"
+			},
+			"cw_ls_serverName": {
+				"type": "String"
+			},
+			"cw_ls_databaseName": {
+				"type": "String"
+			},
+			"cw_ls_userName": {
+				"type": "String"
+			},
+			"cw_ls_passwordSecretName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_SQL"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().cw_schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().cw_table",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
