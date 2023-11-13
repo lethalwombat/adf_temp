@@ -1,0 +1,173 @@
+{
+	"name": "Schema_SQL_Bottom_Level",
+	"properties": {
+		"description": "For each source connection, update the information schema stored in the control database, and then set the mappings for the control items associated with that database.",
+		"activities": [
+			{
+				"name": "GetSourceConnectionValues",
+				"description": "Retrieve the source connections for the parsed source.",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT top 1 [ConnectionSettings]\n  FROM @{pipeline().parameters.ConnectionControlTableName}\nwhere JSON_VALUE([ConnectionSettings], '$.databaseName') = '@{pipeline().parameters.SourceName}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "MetadataDrivenCopy_SQL_ControlDS",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "CopyMetadata",
+				"description": "Copy the information schema information, to a control object relevant for each source.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "GetSourceConnectionValues",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": {
+							"value": "@{concat('IF OBJECT_ID(''config.',pipeline().parameters.SourceName,''', ''U'') IS NOT NULL ',\n   'DROP TABLE config.', pipeline().parameters.SourceName,';')}",
+							"type": "Expression"
+						},
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": true,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MetadataDrivenCopy_SQL_SourceDS",
+						"type": "DatasetReference",
+						"parameters": {
+							"cw_schema": "INFORMATION_SCHEMA",
+							"cw_table": "COLUMNS",
+							"cw_ls_serverName": {
+								"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).serverName",
+								"type": "Expression"
+							},
+							"cw_ls_databaseName": {
+								"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).databaseName",
+								"type": "Expression"
+							},
+							"cw_ls_userName": {
+								"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).userName",
+								"type": "Expression"
+							},
+							"cw_ls_passwordSecretName": {
+								"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).passwordSecretName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "MetadataDrivenCopy_SQL_Schema",
+						"type": "DatasetReference",
+						"parameters": {
+							"System": {
+								"value": "@pipeline().parameters.SourceName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "SetMappings",
+				"description": "Update the mappings based on the retrieved metadata, for each control item associated with that database.",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CopyMetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[config].[sp_upd_MapSQLDataTypes]",
+					"storedProcedureParameters": {
+						"system": {
+							"value": {
+								"value": "@pipeline().parameters.SourceName",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azsqldb_metadatacontroldb",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"ConnectionControlTableName": {
+				"type": "string"
+			},
+			"SourceName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Metadata/Schema"
+		},
+		"annotations": []
+	}
+}

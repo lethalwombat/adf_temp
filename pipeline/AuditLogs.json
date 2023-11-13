@@ -212,8 +212,6 @@
 		"folder": {
 			"name": "Metadata"
 		},
-		"annotations": [],
-		"lastPublishTime": "2023-11-13T03:31:16Z"
-	},
-	"type": "Microsoft.DataFactory/factories/pipelines"
+		"annotations": []
+	}
 }

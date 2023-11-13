@@ -1,0 +1,3315 @@
+{
+	"name": "MetadataDrivenCopy_Oracle_BottomLevel",
+	"properties": {
+		"description": "This pipeline will copy objects from one group. The objects belonging to this group will be copied parallelly.",
+		"activities": [
+			{
+				"name": "ListObjectsFromOneGroup",
+				"description": "List objects from one group and iterate each of them to downstream activities",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.ObjectsPerGroupToCopy",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "RouteJobsBasedOnLoadingBehavior",
+							"description": "Check the loading behavior for each object if it requires full load or incremental load. If it is Default or FullLoad case, do full load. If it is DeltaLoad case, do incremental load.",
+							"type": "Switch",
+							"dependsOn": [
+								{
+									"activity": "GetSourceConnectionValues",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "FullLoad",
+										"activities": [
+											{
+												"name": "FullLoadOneObject",
+												"description": "Take a full snapshot on this object and copy it to the destination",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "LogCSVCommence_FL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 300,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "OracleSource",
+														"oracleReaderQuery": {
+															"value": "@json(item().CopySourceSettings).oracleReaderQuery",
+															"type": "Expression"
+														},
+														"partitionOption": {
+															"value": "@json(item().CopySourceSettings).partitionOption",
+															"type": "Expression"
+														},
+														"partitionSettings": {
+															"partitionColumnName": {
+																"value": "@json(item().CopySourceSettings).partitionColumnName",
+																"type": "Expression"
+															},
+															"partitionUpperBound": {
+																"value": "@json(item().CopySourceSettings).partitionUpperBound",
+																"type": "Expression"
+															},
+															"partitionLowerBound": {
+																"value": "@json(item().CopySourceSettings).partitionLowerBound",
+																"type": "Expression"
+															},
+															"partitionNames": {
+																"value": "@json(item().CopySourceSettings).partitionNames",
+																"type": "Expression"
+															}
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"validateDataConsistency": true,
+													"translator": {
+														"value": "@json(item().CopyActivitySettings).translator",
+														"type": "Expression"
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_schema": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"cw_table": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"cw_ls_host": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).host",
+																"type": "Expression"
+															},
+															"cw_ls_port": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).port",
+																"type": "Expression"
+															},
+															"cw_ls_SID": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).SID",
+																"type": "Expression"
+															},
+															"cw_ls_userName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).userName",
+																"type": "Expression"
+															},
+															"cw_ls_passwordSecretName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).passwordSecretName",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_DestinationDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_compressionCodec": {
+																"value": "@json(item().SinkObjectSettings).compressionCodec",
+																"type": "Expression"
+															},
+															"cw_compressionLevel": {
+																"value": "@json(item().SinkObjectSettings).compressionLevel",
+																"type": "Expression"
+															},
+															"cw_columnDelimiter": {
+																"value": "@json(item().SinkObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().SinkObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().SinkObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_firstRowAsHeader": {
+																"value": "@json(item().SinkObjectSettings).firstRowAsHeader",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@concat(json(item().SinkObjectSettings).fileName, '.csv')",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@concat(json(item().SinkObjectSettings).folderPath, '/', json(item().DataLoadingBehaviorSettings).dataLoadingBehavior)",
+																"type": "Expression"
+															},
+															"cw_container": {
+																"value": "@json(item().SinkObjectSettings).container",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "FullLoadOneObject_Parquet",
+												"description": "Take a full snapshot on this object and copy it to the destination",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "LogParquetCommence_FL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 300,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [
+													{
+														"name": "Source",
+														"value": "@{json(item().ParquetSourceObjectSettings).fileSystem}/@{json(item().ParquetSourceObjectSettings).folderPath}/@{json(item().ParquetSourceObjectSettings).fileName}"
+													},
+													{
+														"name": "Destination",
+														"value": "@{json(item().ParquetSinkObjectSettings).fileSystem}/@{json(item().ParquetSinkObjectSettings).folderPath}/@{json(item().ParquetSinkObjectSettings).fileName}"
+													}
+												],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "loadDate",
+																"value": {
+																	"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyyMMdd')",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": {
+																"value": "@json(item().ParquetCopySourceSettings).recursive",
+																"type": "Expression"
+															}
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings",
+															"skipLineCount": {
+																"value": "@json(item().ParquetCopySourceSettings).skipLineCount",
+																"type": "Expression"
+															}
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"validateDataConsistency": true,
+													"translator": {
+														"value": "@json(item().ParquetCopyActivitySettings).translator",
+														"type": "Expression"
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_ParquetSourceDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_columnDelimiter": {
+																"value": "@json(item().ParquetSourceObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().ParquetSourceObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().ParquetSourceObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_firstRowAsHeader": {
+																"value": "@json(item().ParquetSourceObjectSettings).firstRowAsHeader",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@concat(json(item().ParquetSourceObjectSettings).fileName, '.csv')",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@concat(json(item().ParquetSourceObjectSettings).folderPath, '/', json(item().DataLoadingBehaviorSettings).dataLoadingBehavior)",
+																"type": "Expression"
+															},
+															"cw_fileSystem": {
+																"value": "@json(item().ParquetSourceObjectSettings).fileSystem",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_compressionCodec": {
+																"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
+																"type": "Expression"
+															},
+															"cw_columnDelimiter": {
+																"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@concat(json(item().ParquetSinkObjectSettings).fileName, '.parquet')",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@concat(json(item().ParquetSinkObjectSettings).folderPath, '/', json(item().DataLoadingBehaviorSettings).dataLoadingBehavior)",
+																"type": "Expression"
+															},
+															"cw_fileSystem": {
+																"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "LogCSVCommence_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogCSVSuccess_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "FullLoadOneObject",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('FullLoadOneObject').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetCommence_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "LogCSVSuccess_FL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogCSVFail_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "FullLoadOneObject",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('FullLoadOneObject').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetSuccess_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "FullLoadOneObject_Parquet",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('FullLoadOneObject_Parquet').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetFail_FL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "FullLoadOneObject_Parquet",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('FullLoadOneObject_Parquet').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogParquetFail_FL",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogParquetFail_FL",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											},
+											{
+												"name": "Fail_LogCSVFail_FL",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogCSVFail_FL",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									},
+									{
+										"value": "DeltaLoad",
+										"activities": [
+											{
+												"name": "GetMaxWatermarkValue",
+												"description": "Query the source object to get the max value from watermark column",
+												"type": "Lookup",
+												"dependsOn": [
+													{
+														"activity": "LogCSVCommence_DL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "OracleSource",
+														"oracleReaderQuery": {
+															"value": "select max(\"@{json(item().DataLoadingBehaviorSettings).watermarkColumnName}\") as CurrentMaxWaterMarkColumnValue from \"@{json(item().SourceObjectSettings).schema}\".\"@{json(item().SourceObjectSettings).table}\"",
+															"type": "Expression"
+														},
+														"partitionOption": "None"
+													},
+													"dataset": {
+														"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_schema": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"cw_table": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"cw_ls_host": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).host",
+																"type": "Expression"
+															},
+															"cw_ls_port": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).port",
+																"type": "Expression"
+															},
+															"cw_ls_SID": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).SID",
+																"type": "Expression"
+															},
+															"cw_ls_userName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).userName",
+																"type": "Expression"
+															},
+															"cw_ls_passwordSecretName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).passwordSecretName",
+																"type": "Expression"
+															}
+														}
+													}
+												}
+											},
+											{
+												"name": "DeltaLoadOneObject",
+												"description": "Copy the changed data only from last time via comparing the value in watermark column to identify changes.",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "GetMaxWatermarkValue",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 300,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "OracleSource",
+														"oracleReaderQuery": {
+															"value": "select * from \"@{json(item().SourceObjectSettings).schema}\".\"@{json(item().SourceObjectSettings).table}\" \n        where \"@{json(item().DataLoadingBehaviorSettings).watermarkColumnName}\" > @{if(contains(json(item().DataLoadingBehaviorSettings).watermarkColumnType, 'Int'),\n        json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue, \n        concat('TO_DATE(''', formatDateTime(json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue, 'yyyy-MM-dd HH:mm'), ''', ''YYYY-MM-DD HH24:MI'')'))}\n        and \"@{json(item().DataLoadingBehaviorSettings).watermarkColumnName}\" <= @{if(contains(json(item().DataLoadingBehaviorSettings).watermarkColumnType, 'Int'),\n        activity('GetMaxWatermarkValue').output.firstRow.CurrentMaxWaterMarkColumnValue, \n        concat('TO_DATE(''', formatDateTime(activity('GetMaxWatermarkValue').output.firstRow.CurrentMaxWaterMarkColumnValue, 'yyyy-MM-dd HH:mm'), ''', ''YYYY-MM-DD HH24:MI'')'))}",
+															"type": "Expression"
+														},
+														"partitionOption": {
+															"value": "@json(item().CopySourceSettings).partitionOption",
+															"type": "Expression"
+														},
+														"partitionSettings": {
+															"partitionColumnName": {
+																"value": "@json(item().CopySourceSettings).partitionColumnName",
+																"type": "Expression"
+															},
+															"partitionUpperBound": {
+																"value": "@json(item().CopySourceSettings).partitionUpperBound",
+																"type": "Expression"
+															},
+															"partitionLowerBound": {
+																"value": "@json(item().CopySourceSettings).partitionLowerBound",
+																"type": "Expression"
+															},
+															"partitionNames": {
+																"value": "@json(item().CopySourceSettings).partitionNames",
+																"type": "Expression"
+															}
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"validateDataConsistency": true,
+													"translator": {
+														"value": "@json(item().CopyActivitySettings).translator",
+														"type": "Expression"
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_schema": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"cw_table": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"cw_ls_host": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).host",
+																"type": "Expression"
+															},
+															"cw_ls_port": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).port",
+																"type": "Expression"
+															},
+															"cw_ls_SID": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).SID",
+																"type": "Expression"
+															},
+															"cw_ls_userName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).userName",
+																"type": "Expression"
+															},
+															"cw_ls_passwordSecretName": {
+																"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).passwordSecretName",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_DestinationDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_compressionCodec": {
+																"value": "@json(item().SinkObjectSettings).compressionCodec",
+																"type": "Expression"
+															},
+															"cw_compressionLevel": {
+																"value": "@json(item().SinkObjectSettings).compressionLevel",
+																"type": "Expression"
+															},
+															"cw_columnDelimiter": {
+																"value": "@json(item().SinkObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().SinkObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().SinkObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_firstRowAsHeader": {
+																"value": "@json(item().SinkObjectSettings).firstRowAsHeader",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@json(item().SinkObjectSettings).fileName",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@json(item().SinkObjectSettings).folderPath",
+																"type": "Expression"
+															},
+															"cw_container": {
+																"value": "@json(item().SinkObjectSettings).container",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "UpdateWatermarkColumnValue",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "DeltaLoadOneObject_Parquet",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[UpdateWatermarkColumnValue_Oracle]",
+													"storedProcedureParameters": {
+														"Id": {
+															"value": {
+																"value": "@item().Id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"watermarkColumnStartValue": {
+															"value": {
+																"value": "@activity('GetMaxWatermarkValue').output.firstRow.CurrentMaxWaterMarkColumnValue",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "DeltaLoadOneObject_Parquet",
+												"description": "Take a full snapshot on this object and copy it to the destination",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "LogParquetCommence_DL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 1,
+													"retryIntervalInSeconds": 300,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [
+													{
+														"name": "Source",
+														"value": "@{json(item().ParquetSourceObjectSettings).fileSystem}/@{json(item().ParquetSourceObjectSettings).folderPath}/@{json(item().ParquetSourceObjectSettings).fileName}"
+													},
+													{
+														"name": "Destination",
+														"value": "@{json(item().ParquetSinkObjectSettings).fileSystem}/@{json(item().ParquetSinkObjectSettings).folderPath}/@{json(item().ParquetSinkObjectSettings).fileName}"
+													}
+												],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "loadDate",
+																"value": {
+																	"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyyMMdd')",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": {
+																"value": "@json(item().ParquetCopySourceSettings).recursive",
+																"type": "Expression"
+															}
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings",
+															"skipLineCount": {
+																"value": "@json(item().ParquetCopySourceSettings).skipLineCount",
+																"type": "Expression"
+															}
+														}
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"validateDataConsistency": true,
+													"translator": {
+														"value": "@json(item().ParquetCopyActivitySettings).translator",
+														"type": "Expression"
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_ParquetSourceDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_columnDelimiter": {
+																"value": "@json(item().ParquetSourceObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().ParquetSourceObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().ParquetSourceObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_firstRowAsHeader": {
+																"value": "@json(item().ParquetSourceObjectSettings).firstRowAsHeader",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@json(item().ParquetSourceObjectSettings).fileName",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@json(item().ParquetSourceObjectSettings).folderPath",
+																"type": "Expression"
+															},
+															"cw_fileSystem": {
+																"value": "@json(item().ParquetSourceObjectSettings).fileSystem",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@json(item().ParquetSourceObjectSettings).container",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
+														"type": "DatasetReference",
+														"parameters": {
+															"cw_compressionCodec": {
+																"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
+																"type": "Expression"
+															},
+															"cw_columnDelimiter": {
+																"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
+																"type": "Expression"
+															},
+															"cw_escapeChar": {
+																"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
+																"type": "Expression"
+															},
+															"cw_quoteChar": {
+																"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
+																"type": "Expression"
+															},
+															"cw_fileName": {
+																"value": "@json(item().ParquetSinkObjectSettings).fileName",
+																"type": "Expression"
+															},
+															"cw_folderPath": {
+																"value": "@json(item().ParquetSinkObjectSettings).folderPath",
+																"type": "Expression"
+															},
+															"cw_fileSystem": {
+																"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
+																"type": "Expression"
+															},
+															"cw_pipelineStartTime": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "LogCSVCommence_DL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogCSVSuccess_DL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "DeltaLoadOneObject",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('DeltaLoadOneObject').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetCommence_DL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "LogCSVSuccess_DL",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "commenced",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": null,
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetSuccess_DL",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "UpdateWatermarkColumnValue",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": null,
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "succeeded",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"rowsCopied": {
+															"value": {
+																"value": "@activity('DeltaLoadOneObject_Parquet').output?.rowsCopied",
+																"type": "Expression"
+															},
+															"type": "Int64"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetFail_DL_2",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "UpdateWatermarkColumnValue",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('UpdateWatermarkColumnValue').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogParquetFail_DL_1",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "DeltaLoadOneObject_Parquet",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "parquet copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('DeltaLoadOneObject_Parquet').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogCSVFail_DL_2",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "DeltaLoadOneObject",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('DeltaLoadOneObject').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "LogCSVFail_DL_1",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "GetMaxWatermarkValue",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[config].[sp_upd_AuditLog]",
+													"storedProcedureParameters": {
+														"activity": {
+															"value": "csv copy",
+															"type": "String"
+														},
+														"commenceDateTime": {
+															"value": null,
+															"type": "DateTime"
+														},
+														"completeDateTime": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"elMethod": {
+															"value": {
+																"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"errorText": {
+															"value": {
+																"value": "@activity('GetMaxWatermarkValue').error?.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"runDate": {
+															"value": {
+																"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+																"type": "Expression"
+															},
+															"type": "DateTime"
+														},
+														"schedule": {
+															"value": {
+																"value": "@pipeline().parameters.TriggerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"schema": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).schema",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"sourceType": {
+															"value": {
+																"value": "@item().SourceConnectionSettingsName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"status": {
+															"value": "failed",
+															"type": "String"
+														},
+														"table": {
+															"value": {
+																"value": "@json(item().SourceObjectSettings).table",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"watermark": {
+															"value": {
+																"value": "@concat(json(item().DataLoadingBehaviorSettings).watermarkColumnName, ': ', json(item().DataLoadingBehaviorSettings).watermarkColumnStartValue)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azsqldb_metadatacontroldb",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Fail_LogParquetFail_DL_1",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogParquetFail_DL_1",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											},
+											{
+												"name": "Fail_LogParquetFail_DL_2",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogParquetFail_DL_2",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											},
+											{
+												"name": "Fail_LogCSVFail_DL_2",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogCSVFail_DL_2",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											},
+											{
+												"name": "Fail_LogCSVFail_DL_1",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "LogCSVFail_DL_1",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Acitivity failed for object: ', item().SourceObjectSettings, '. Please review the audit logs for more details.')",
+														"type": "Expression"
+													},
+													"errorCode": "3204"
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "DefaultFullLoadOneObject",
+										"description": "Take a full snapshot on this object and copy it to the destination",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "LogCSVCommence",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 1,
+											"retryIntervalInSeconds": 300,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "OracleSource",
+												"oracleReaderQuery": {
+													"value": "@json(item().CopySourceSettings).oracleReaderQuery",
+													"type": "Expression"
+												},
+												"partitionOption": {
+													"value": "@json(item().CopySourceSettings).partitionOption",
+													"type": "Expression"
+												},
+												"partitionSettings": {
+													"partitionColumnName": {
+														"value": "@json(item().CopySourceSettings).partitionColumnName",
+														"type": "Expression"
+													},
+													"partitionUpperBound": {
+														"value": "@json(item().CopySourceSettings).partitionUpperBound",
+														"type": "Expression"
+													},
+													"partitionLowerBound": {
+														"value": "@json(item().CopySourceSettings).partitionLowerBound",
+														"type": "Expression"
+													},
+													"partitionNames": {
+														"value": "@json(item().CopySourceSettings).partitionNames",
+														"type": "Expression"
+													}
+												}
+											},
+											"sink": {
+												"type": "DelimitedTextSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "DelimitedTextWriteSettings",
+													"quoteAllText": true,
+													"fileExtension": ".txt"
+												}
+											},
+											"enableStaging": false,
+											"validateDataConsistency": true,
+											"translator": {
+												"value": "@json(item().CopyActivitySettings).translator",
+												"type": "Expression"
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
+												"type": "DatasetReference",
+												"parameters": {
+													"cw_schema": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"cw_table": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"cw_ls_host": {
+														"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).host",
+														"type": "Expression"
+													},
+													"cw_ls_port": {
+														"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).port",
+														"type": "Expression"
+													},
+													"cw_ls_SID": {
+														"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).SID",
+														"type": "Expression"
+													},
+													"cw_ls_userName": {
+														"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).userName",
+														"type": "Expression"
+													},
+													"cw_ls_passwordSecretName": {
+														"value": "@json(activity('GetSourceConnectionValues').output.value[0].ConnectionSettings).passwordSecretName",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "MetadataDrivenCopy_Oracle_DestinationDS",
+												"type": "DatasetReference",
+												"parameters": {
+													"cw_compressionCodec": {
+														"value": "@json(item().SinkObjectSettings).compressionCodec",
+														"type": "Expression"
+													},
+													"cw_compressionLevel": {
+														"value": "@json(item().SinkObjectSettings).compressionLevel",
+														"type": "Expression"
+													},
+													"cw_columnDelimiter": {
+														"value": "@json(item().SinkObjectSettings).columnDelimiter",
+														"type": "Expression"
+													},
+													"cw_escapeChar": {
+														"value": "@json(item().SinkObjectSettings).escapeChar",
+														"type": "Expression"
+													},
+													"cw_quoteChar": {
+														"value": "@json(item().SinkObjectSettings).quoteChar",
+														"type": "Expression"
+													},
+													"cw_firstRowAsHeader": {
+														"value": "@json(item().SinkObjectSettings).firstRowAsHeader",
+														"type": "Expression"
+													},
+													"cw_fileName": {
+														"value": "@json(item().SinkObjectSettings).fileName",
+														"type": "Expression"
+													},
+													"cw_folderPath": {
+														"value": "@json(item().SinkObjectSettings).folderPath",
+														"type": "Expression"
+													},
+													"cw_container": {
+														"value": "@json(item().SinkObjectSettings).container",
+														"type": "Expression"
+													},
+													"cw_pipelineStartTime": {
+														"value": "@pipeline().parameters.PipelineStartTime",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "DefaultLoadOneObject_Parquet",
+										"description": "Take a full snapshot on this object and copy it to the destination",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "LogParquetCommence",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 1,
+											"retryIntervalInSeconds": 300,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [
+											{
+												"name": "Source",
+												"value": "@{json(item().ParquetSourceObjectSettings).fileSystem}/@{json(item().ParquetSourceObjectSettings).folderPath}/@{json(item().ParquetSourceObjectSettings).fileName}"
+											},
+											{
+												"name": "Destination",
+												"value": "@{json(item().ParquetSinkObjectSettings).fileSystem}/@{json(item().ParquetSinkObjectSettings).folderPath}/@{json(item().ParquetSinkObjectSettings).fileName}"
+											}
+										],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"additionalColumns": [
+													{
+														"name": "loadDate",
+														"value": {
+															"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime,'UTC','Cen. Australia Standard Time'), 'yyyyMMdd')",
+															"type": "Expression"
+														}
+													}
+												],
+												"storeSettings": {
+													"type": "AzureBlobFSReadSettings",
+													"recursive": {
+														"value": "@json(item().ParquetCopySourceSettings).recursive",
+														"type": "Expression"
+													}
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings",
+													"skipLineCount": {
+														"value": "@json(item().ParquetCopySourceSettings).skipLineCount",
+														"type": "Expression"
+													}
+												}
+											},
+											"sink": {
+												"type": "ParquetSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "ParquetWriteSettings"
+												}
+											},
+											"enableStaging": false,
+											"validateDataConsistency": true,
+											"translator": {
+												"value": "@json(item().ParquetCopyActivitySettings).translator",
+												"type": "Expression"
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "MetadataDrivenCopy_Oracle_ParquetSourceDS",
+												"type": "DatasetReference",
+												"parameters": {
+													"cw_columnDelimiter": {
+														"value": "@json(item().ParquetSourceObjectSettings).columnDelimiter",
+														"type": "Expression"
+													},
+													"cw_escapeChar": {
+														"value": "@json(item().ParquetSourceObjectSettings).escapeChar",
+														"type": "Expression"
+													},
+													"cw_quoteChar": {
+														"value": "@json(item().ParquetSourceObjectSettings).quoteChar",
+														"type": "Expression"
+													},
+													"cw_firstRowAsHeader": {
+														"value": "@json(item().ParquetSourceObjectSettings).firstRowAsHeader",
+														"type": "Expression"
+													},
+													"cw_fileName": {
+														"value": "@json(item().ParquetSourceObjectSettings).fileName",
+														"type": "Expression"
+													},
+													"cw_folderPath": {
+														"value": "@json(item().ParquetSourceObjectSettings).folderPath",
+														"type": "Expression"
+													},
+													"cw_fileSystem": {
+														"value": "@json(item().ParquetSourceObjectSettings).fileSystem",
+														"type": "Expression"
+													},
+													"cw_pipelineStartTime": {
+														"value": "@json(item().ParquetSourceObjectSettings).container",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "MetadataDrivenCopy_Oracle_ParquetDestinationDS",
+												"type": "DatasetReference",
+												"parameters": {
+													"cw_compressionCodec": {
+														"value": "@json(item().ParquetSinkObjectSettings).compressionCodec",
+														"type": "Expression"
+													},
+													"cw_columnDelimiter": {
+														"value": "@json(item().ParquetSinkObjectSettings).columnDelimiter",
+														"type": "Expression"
+													},
+													"cw_escapeChar": {
+														"value": "@json(item().ParquetSinkObjectSettings).escapeChar",
+														"type": "Expression"
+													},
+													"cw_quoteChar": {
+														"value": "@json(item().ParquetSinkObjectSettings).quoteChar",
+														"type": "Expression"
+													},
+													"cw_fileName": {
+														"value": "@json(item().ParquetSinkObjectSettings).fileName",
+														"type": "Expression"
+													},
+													"cw_folderPath": {
+														"value": "@json(item().ParquetSinkObjectSettings).folderPath",
+														"type": "Expression"
+													},
+													"cw_fileSystem": {
+														"value": "@json(item().ParquetSinkObjectSettings).fileSystem",
+														"type": "Expression"
+													},
+													"cw_pipelineStartTime": {
+														"value": "@pipeline().parameters.PipelineStartTime",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "LogCSVCommence",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "csv copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": null,
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "commenced",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "LogCSVSuccess",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "DefaultFullLoadOneObject",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "csv copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": null,
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "succeeded",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												},
+												"rowsCopied": {
+													"value": {
+														"value": "@activity('DefaultFullLoadOneObject').output?.rowsCopied",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "LogParquetCommence",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "LogCSVSuccess",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "parquet copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": null,
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "commenced",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "LogCSVFail",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "DefaultFullLoadOneObject",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "csv copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": {
+														"value": "@activity('DefaultFullLoadOneObject').error?.message",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "failed",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "LogParquetSuccess",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "DefaultLoadOneObject_Parquet",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "parquet copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": null,
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "succeeded",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												},
+												"rowsCopied": {
+													"value": {
+														"value": "@activity('DefaultLoadOneObject_Parquet').output?.rowsCopied",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "LogParquetFail",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "DefaultLoadOneObject_Parquet",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[config].[sp_upd_AuditLog]",
+											"storedProcedureParameters": {
+												"activity": {
+													"value": "parquet copy",
+													"type": "String"
+												},
+												"commenceDateTime": {
+													"value": null,
+													"type": "DateTime"
+												},
+												"completeDateTime": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"elMethod": {
+													"value": {
+														"value": "@json(item().DataLoadingBehaviorSettings).dataLoadingBehavior",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"errorText": {
+													"value": {
+														"value": "@activity('DefaultFullLoadOneObject').error?.message",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"runDate": {
+													"value": {
+														"value": "@convertTimeZone(utcNow(),'UTC','Cen. Australia Standard Time')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"schedule": {
+													"value": {
+														"value": "@pipeline().parameters.TriggerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"schema": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).schema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"sourceType": {
+													"value": {
+														"value": "@item().SourceConnectionSettingsName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"status": {
+													"value": "failed",
+													"type": "String"
+												},
+												"table": {
+													"value": {
+														"value": "@json(item().SourceObjectSettings).table",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"watermark": {
+													"value": null,
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_azsqldb_metadatacontroldb",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "Fail_LogParquetFail",
+										"description": "",
+										"type": "Fail",
+										"dependsOn": [
+											{
+												"activity": "LogParquetFail",
+												"dependencyConditions": [
+													"Completed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat('Activity failed for object: ', item().SourceObjectSettings, ' Please review the audit logs for further details.')",
+												"type": "Expression"
+											},
+											"errorCode": "3204"
+										}
+									},
+									{
+										"name": "Fail_LogCSVFail",
+										"description": "",
+										"type": "Fail",
+										"dependsOn": [
+											{
+												"activity": "LogCSVFail",
+												"dependencyConditions": [
+													"Completed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat('Activity failed for object: ', item().SourceObjectSettings, ' Please review the audit logs for further details.')",
+												"type": "Expression"
+											},
+											"errorCode": "3204"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "GetSourceConnectionValues",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select ConnectionSettings from @{pipeline().parameters.ConnectionControlTableName} where Name = '@{item().SourceConnectionSettingsName} ' AND Id = @{item().Id}",
+										"type": "Expression"
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "MetadataDrivenCopy_Oracle_ControlDS",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ObjectsPerGroupToCopy": {
+				"type": "Array"
+			},
+			"ConnectionControlTableName": {
+				"type": "String"
+			},
+			"TriggerName": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "MetadataDrivenCopy_Oracle"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-05-23T04:36:04Z"
+	}
+}

@@ -1,0 +1,109 @@
+{
+	"name": "Transformation_StageLevel",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetStagesCount",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT distinct(stage) as stage FROM @{pipeline().parameters.MainControlTableName} where TriggerName like '%@{pipeline().parameters.triggerName}%' and CopyEnabled = 1 order by stage",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azsqldb_satacsqldbcontroldb",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "CopyBatchesPerStage",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetStagesCount",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetStagesCount').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Transformation_TopLevel",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Transformation_TopLevel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"databaseName": "controldb",
+									"MaxNumberOfObjectsReturnedFromLookupActivity": 5000,
+									"MaxNumberOfConcurrentTasks": 50,
+									"MainControlTableName": {
+										"value": "@pipeline().parameters.MainControlTableName",
+										"type": "Expression"
+									},
+									"stage": {
+										"value": "@item().stage",
+										"type": "Expression"
+									},
+									"trigger": {
+										"value": "@pipeline().parameters.triggerName",
+										"type": "Expression"
+									},
+									"PipelineStartTime": {
+										"value": "@pipeline().parameters.PipelineStartTime",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"MainControlTableName": {
+				"type": "string",
+				"defaultValue": "config.vw_MaterialisedTransform"
+			},
+			"triggerName": {
+				"type": "string",
+				"defaultValue": "manual"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SCD"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,114 @@
+{
+	"name": "Schema_Middle_Level",
+	"properties": {
+		"description": "This pipeline will execute the pipeline appropriate for each incoming source type. The objects belonging to this batch will be copied parallelly.",
+		"activities": [
+			{
+				"name": "Switch_SystemType",
+				"description": "Switch for each source type {oracle, sql, flat file}",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.System",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "SQL",
+							"activities": [
+								{
+									"name": "Execute SQL",
+									"description": "Execute the Bottom Level pipeline (Schema_SQL_Bottom_Level) for the parsed source.",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Schema_SQL_Bottom_Level",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"ConnectionControlTableName": "[config].[SQLConnectionControlTable]",
+											"SourceName": {
+												"value": "@pipeline().parameters.Source",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "Oracle",
+							"activities": [
+								{
+									"name": "Execute Oracle",
+									"description": "Execute the Bottom Level pipeline (Schema_Oracle_Bottom_Level) for the parsed source.",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Schema_Oracle_Bottom_Level",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"ConnectionControlTableName": "[config].[ConnectionReference]",
+											"SourceName": {
+												"value": "@pipeline().parameters.Source",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "Flat",
+							"activities": [
+								{
+									"name": "Wait_flat",
+									"description": "Execute a wait only, where the source type is Oracle (Placeholder).",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Wait_default",
+							"description": "Execute a wait only, where the source type is not provided.",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"System": {
+				"type": "string"
+			},
+			"Source": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Metadata/Schema"
+		},
+		"annotations": []
+	}
+}
