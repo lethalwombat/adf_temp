@@ -18,7 +18,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "ds_edaDelta1",
+						"referenceName": "ds_edaDelta",
 						"type": "DatasetReference",
 						"parameters": {
 							"targetName": {

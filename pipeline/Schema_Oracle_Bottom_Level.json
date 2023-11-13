@@ -27,7 +27,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "MetadataDrivenCopy_Oracle_ControlDS3",
+						"referenceName": "MetadataDrivenCopy_Oracle_ControlDS",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
@@ -87,7 +87,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "MetadataDrivenCopy_Oracle_SourceDS1",
+						"referenceName": "MetadataDrivenCopy_Oracle_SourceDS",
 						"type": "DatasetReference",
 						"parameters": {
 							"cw_table": "ALL_TAB_COLUMNS",

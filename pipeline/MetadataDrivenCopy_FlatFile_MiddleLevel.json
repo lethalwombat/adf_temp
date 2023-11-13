@@ -40,7 +40,7 @@
 									"partitionOption": "None"
 								},
 								"dataset": {
-									"referenceName": "MetadataDrivenCopy_Oracle_ControlDS1",
+									"referenceName": "MetadataDrivenCopy_Oracle_ControlDS",
 									"type": "DatasetReference"
 								},
 								"firstRowOnly": false

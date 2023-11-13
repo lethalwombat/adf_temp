@@ -126,7 +126,7 @@
 												],
 												"outputs": [
 													{
-														"referenceName": "MetadataDrivenCopy_FileSystem_DestinationDS1",
+														"referenceName": "MetadataDrivenCopy_FileSystem_DestinationDS",
 														"type": "DatasetReference",
 														"parameters": {
 															"cw_compressionCodec": {
@@ -241,7 +241,7 @@
 												},
 												"inputs": [
 													{
-														"referenceName": "MetadataDrivenCopy_FileSystem_ParquetSourceDS1",
+														"referenceName": "MetadataDrivenCopy_FileSystem_ParquetSourceDS",
 														"type": "DatasetReference",
 														"parameters": {
 															"cw_columnDelimiter": {
@@ -281,7 +281,7 @@
 												],
 												"outputs": [
 													{
-														"referenceName": "MetadataDrivenCopy_FileSystem_ParquetDestinationDS1",
+														"referenceName": "MetadataDrivenCopy_FileSystem_ParquetDestinationDS",
 														"type": "DatasetReference",
 														"parameters": {
 															"cw_compressionCodec": {
@@ -1053,7 +1053,7 @@
 										],
 										"outputs": [
 											{
-												"referenceName": "MetadataDrivenCopy_FileSystem_DestinationDS1",
+												"referenceName": "MetadataDrivenCopy_FileSystem_DestinationDS",
 												"type": "DatasetReference",
 												"parameters": {
 													"cw_compressionCodec": {
@@ -1168,7 +1168,7 @@
 										},
 										"inputs": [
 											{
-												"referenceName": "MetadataDrivenCopy_FileSystem_ParquetSourceDS1",
+												"referenceName": "MetadataDrivenCopy_FileSystem_ParquetSourceDS",
 												"type": "DatasetReference",
 												"parameters": {
 													"cw_columnDelimiter": {
@@ -1208,7 +1208,7 @@
 										],
 										"outputs": [
 											{
-												"referenceName": "MetadataDrivenCopy_FileSystem_ParquetDestinationDS1",
+												"referenceName": "MetadataDrivenCopy_FileSystem_ParquetDestinationDS",
 												"type": "DatasetReference",
 												"parameters": {
 													"cw_compressionCodec": {

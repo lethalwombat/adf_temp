@@ -25,7 +25,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "ds_azsqldb_satacsqldbcontroldb",
+						"referenceName": "ds_azsqldb_sqldbcontroldb",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
