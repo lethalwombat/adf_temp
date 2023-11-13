@@ -1,0 +1,122 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "exp-edas-dev-datafactory1"
+		},
+		"ls_azsqldb_metadatacontroldb_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_azsqldb_metadatacontroldb'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-edas-dev-sqlserver1.database.windows.net;Initial Catalog=controldb"
+		},
+		"ls_oracle_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_oracle'",
+			"defaultValue": "host=@{linkedService().host};port=@{linkedService().port};sid=@{linkedService().SID};user id=@{linkedService().userName}"
+		},
+		"ls_sqlserver_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sqlserver'",
+			"defaultValue": "Integrated Security=False;Data Source=@{linkedService().serverName};Initial Catalog=@{linkedService().databaseName};User ID=@{linkedService().userName}"
+		},
+		"ls_synapsesqlondemand_gen01_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_synapsesqlondemand_gen01'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=exp-etas-dev-synapse1-ondemand.sql.azuresynapse.net;Initial Catalog=synapsedb"
+		},
+		"ls_azdatalake_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://expetasdev5qmnl6sk7aemc.blob.core.windows.net"
+		},
+		"ls_azkeyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://exp-edas-dev-kv1.vault.azure.net"
+		},
+		"ls_filesystem_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "@{linkedService().host}"
+		},
+		"ls_filesystem_properties_typeProperties_userId": {
+			"type": "string",
+			"defaultValue": "@{linkedService().userName}"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "exp-edas-dev-datafactory1_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_azsqldb_metadatacontroldb_connectionString": {
+						"value": "[parameters('ls_azsqldb_metadatacontroldb_connectionString')]"
+					},
+					"ls_synapsesqlondemand_gen01_connectionString": {
+						"value": "[parameters('ls_synapsesqlondemand_gen01_connectionString')]"
+					},
+					"ls_azdatalake_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('ls_azdatalake_properties_typeProperties_serviceEndpoint')]"
+					},
+					"ls_azkeyvault_properties_typeProperties_baseUrl": {
+						"value": "[parameters('ls_azkeyvault_properties_typeProperties_baseUrl')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "exp-edas-dev-datafactory1_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_oracle_connectionString": {
+						"value": "[parameters('ls_oracle_connectionString')]"
+					},
+					"ls_sqlserver_connectionString": {
+						"value": "[parameters('ls_sqlserver_connectionString')]"
+					},
+					"ls_filesystem_properties_typeProperties_host": {
+						"value": "[parameters('ls_filesystem_properties_typeProperties_host')]"
+					},
+					"ls_filesystem_properties_typeProperties_userId": {
+						"value": "[parameters('ls_filesystem_properties_typeProperties_userId')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'exp-edas-dev-datafactory1_ArmTemplate_0')]"
+			]
+		}
+	]
+}
